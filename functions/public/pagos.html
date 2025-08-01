@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagos en Tiempo Real</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; }
+        
+        /* Estilos para el login */
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .success-message {
+            color: #28a745;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        /* Estilos para el contenido principal */
+        .main-content {
+            display: none;
+        }
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-email {
+            font-weight: bold;
+            color: #333;
+        }
+        .filtros { 
+            text-align: center; 
+            margin: 20px 0; 
+            padding: 15px; 
+            background-color: #f8f9fa; 
+            border-radius: 5px; 
+        }
+        .filtros label { 
+            margin-right: 10px; 
+            font-weight: bold; 
+        }
+        .filtros input[type="checkbox"] { 
+            margin-right: 5px; 
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        .sin-pagos { 
+            text-align: center; 
+            padding: 20px; 
+            color: #666; 
+            font-style: italic; 
+        }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="login-container">
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn">Iniciar Sesión</button>
+        </form>
+        <div id="loginMessage"></div>
+    </div>
+
+    <!-- Contenido Principal (solo visible después del login) -->
+    <div id="mainContent" class="main-content">
+        <div class="header-controls">
+            <h1>Pagos en Tiempo Real</h1>
+            <div class="user-info">
+                <span class="user-email" id="userEmail"></span>
+                <button id="logoutBtn" class="btn btn-secondary">Cerrar Sesión</button>
+            </div>
+        </div>
+        
+        <div class="filtros">
+            <label>
+                <input type="checkbox" id="filtroHoy" checked> Mostrar solo pagos de hoy
+            </label>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID de Pago</th>
+                    <th>Email</th>
+                    <th>Monto Total</th>
+                    <th>Estado</th>
+                    <th>Fecha del Pedido</th>
+                </tr>
+            </thead>
+            <tbody id="pagos-body">
+                <!-- Los datos de los pagos se insertarán aquí -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6XidKMMHLIcEPC7BHgzRVhjxBqlGLYKE",
+            authDomain: "ctrlmp-d13a1.firebaseapp.com",
+            projectId: "ctrlmp-d13a1",
+            storageBucket: "ctrlmp-d13a1.firebasestorage.app",
+            messagingSenderId: "904523566464",
+            appId: "1:904523566464:web:4c52bb72953b87ea740565",
+            measurementId: "G-XZVNXL3JQ6"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Elementos del DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const mainContent = document.getElementById('mainContent');
+        const loginForm = document.getElementById('loginForm');
+        const loginMessage = document.getElementById('loginMessage');
+        const userEmail = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const pagosBody = document.getElementById('pagos-body');
+        const filtroHoy = document.getElementById('filtroHoy');
+
+        // Función para mostrar mensajes
+        function showMessage(message, isError = false) {
+            loginMessage.textContent = message;
+            loginMessage.className = isError ? 'error-message' : 'success-message';
+        }
+
+        // Función para manejar el login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showMessage('Iniciando sesión...');
+                await auth.signInWithEmailAndPassword(email, password);
+                showMessage('¡Inicio de sesión exitoso!');
+            } catch (error) {
+                console.error('Error de login:', error);
+                showMessage(`Error: ${error.message}`, true);
+            }
+        });
+
+        // Función para manejar el logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Error de logout:', error);
+            }
+        });
+
+        // Función para obtener el inicio del día de hoy
+        function getInicioDelDia() {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            return hoy;
+        }
+
+        // Función para verificar si una fecha es de hoy
+        function esDeHoy(fecha) {
+            const inicioDelDia = getInicioDelDia();
+            const fechaPago = new Date(fecha);
+            return fechaPago >= inicioDelDia;
+        }
+
+        // Función para actualizar la tabla
+        function actualizarTabla(querySnapshot) {
+            pagosBody.innerHTML = '';
+            
+            let pagos = [];
+            
+            querySnapshot.forEach((doc) => {
+                const pago = doc.data();
+                const fechaPedido = pago.fecha_pedido;
+                
+                // Aplicar filtro de hoy si está activado
+                if (filtroHoy.checked && fechaPedido) {
+                    if (!esDeHoy(fechaPedido)) {
+                        return;
+                    }
+                }
+                
+                pagos.push({
+                    id: doc.id,
+                    data: pago,
+                    fechaPedido: fechaPedido
+                });
+            });
+            
+            // Ordenar por fecha de llegada (más recientes primero)
+            pagos.sort((a, b) => {
+                if (!a.fechaPedido && !b.fechaPedido) return 0;
+                if (!a.fechaPedido) return 1;
+                if (!b.fechaPedido) return -1;
+                return new Date(b.fechaPedido) - new Date(a.fechaPedido);
+            });
+            
+            // Mostrar mensaje si no hay pagos
+            if (pagos.length === 0) {
+                pagosBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="sin-pagos">
+                            ${filtroHoy.checked ? 'No hay pagos recibidos hoy' : 'No hay pagos disponibles'}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Crear filas de la tabla
+            pagos.forEach((pago) => {
+                const row = document.createElement('tr');
+                
+                const fechaFormateada = pago.fechaPedido ? 
+                    new Date(pago.fechaPedido).toLocaleString() : 'No disponible';
+
+                row.innerHTML = `
+                    <td>${pago.id}</td>
+                    <td>${pago.data.email || 'No disponible'}</td>
+                    <td>${pago.data.monto_total || 'No disponible'}</td>
+                    <td>${pago.data.estado_pago || 'No disponible'}</td>
+                    <td>${fechaFormateada}</td>
+                `;
+                pagosBody.appendChild(row);
+            });
+        }
+
+        // Observador de estado de autenticación
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Usuario autenticado
+                loginScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                userEmail.textContent = user.email;
+                
+                // Iniciar escucha de pagos
+                db.collection("pagos").onSnapshot((querySnapshot) => {
+                    actualizarTabla(querySnapshot);
+                });
+                
+                // Escuchar cambios en el filtro
+                filtroHoy.addEventListener('change', () => {
+                    db.collection("pagos").get().then((querySnapshot) => {
+                        actualizarTabla(querySnapshot);
+                    });
+                });
+                
+            } else {
+                // Usuario no autenticado
+                loginScreen.style.display = 'block';
+                mainContent.style.display = 'none';
+                loginMessage.textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>

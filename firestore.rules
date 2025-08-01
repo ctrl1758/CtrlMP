@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permitir lectura de la colección pagos
+    match /pagos/{document} {
+      allow read: if true;  // Permite lectura pública de pagos
+      allow write: if false; // No permite escritura desde el cliente
+    }
+    
+    // Bloquear acceso a todas las demás colecciones
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 
