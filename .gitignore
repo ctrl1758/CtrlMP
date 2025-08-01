@@ -71,3 +71,24 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Files from functions/.gitignore
+*.local
+
+# IDE and editor specific files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project setup files
+setup-github-secrets.md
+setup-github.ps1
+GEMINI.md
+README.md
+firebase.json
+firestore.indexes.json
+copy-credentials.ps1
+firestores.rules
