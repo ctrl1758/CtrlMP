@@ -4,7 +4,7 @@
 Write-Host "🚀 Configurando CtrlMP para GitHub y Firebase..." -ForegroundColor Green
 
 # Solicitar información del usuario
-$githubUsername = Read-Host "Ingresa tu nombre de usuario de GitHub"
+$githubUsername =  "ctrl1758"
 $repoName = "CtrlMP"
 
 Write-Host "📝 Configurando Git..." -ForegroundColor Yellow
