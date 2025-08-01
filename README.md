@@ -64,7 +64,9 @@ firebase deploy
 
 ## Variables de Entorno
 Asegúrate de configurar las siguientes variables en GitHub Secrets:
-- `FIREBASE_SERVICE_ACCOUNT_CTRLMP`: Credenciales de servicio de Firebase
+- `FIREBASE_SERVICE_ACCOUNT_CTRLMP`: Contenido del archivo `functions/config/credCtrlMp.json`
+
+**Nota**: El proyecto ya incluye el archivo de credenciales `credCtrlMp.json` que está protegido en `.gitignore`.
 
 ## Contribución
 1. Fork el proyecto

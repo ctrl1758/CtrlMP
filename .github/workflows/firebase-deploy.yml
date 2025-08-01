@@ -26,10 +26,14 @@ jobs:
         cd functions
         npm ci
         
+    - name: Setup Firebase credentials
+      run: |
+        echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CTRLMP }}' > functions/config/credCtrlMp.json
+        
     - name: Deploy to Firebase
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
-        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CTRLMP }}'
+        firebaseServiceAccount: functions/config/credCtrlMp.json
         channelId: live
         projectId: ctrlmp-d13a1 

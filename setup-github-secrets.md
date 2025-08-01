@@ -15,13 +15,8 @@ git push -u origin main
 
 ### 3. Configurar las credenciales de Firebase
 
-#### Obtener las credenciales de servicio:
-1. Ve a la [Consola de Firebase](https://console.firebase.google.com)
-2. Selecciona tu proyecto `ctrlmp-d13a1`
-3. Ve a Configuración del proyecto (ícono de engranaje)
-4. Pestaña "Cuentas de servicio"
-5. Haz clic en "Generar nueva clave privada"
-6. Descarga el archivo JSON
+#### Usar el archivo credCtrlMp.json existente:
+Ya tienes el archivo `functions/config/credCtrlMp.json` con las credenciales correctas. Solo necesitas copiar su contenido.
 
 #### Configurar el secret en GitHub:
 1. Ve a tu repositorio en GitHub
@@ -29,8 +24,10 @@ git push -u origin main
 3. En el menú lateral, haz clic en "Secrets and variables" → "Actions"
 4. Haz clic en "New repository secret"
 5. Nombre: `FIREBASE_SERVICE_ACCOUNT_CTRLMP`
-6. Valor: Copia todo el contenido del archivo JSON descargado
+6. Valor: Copia todo el contenido del archivo `functions/config/credCtrlMp.json`
 7. Haz clic en "Add secret"
+
+**Nota**: El archivo `credCtrlMp.json` ya está en tu `.gitignore` para proteger las credenciales.
 
 ### 4. Verificar la configuración
 Una vez configurado, cada vez que hagas push a la rama `main`, GitHub Actions automáticamente:
