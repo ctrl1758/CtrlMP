@@ -11,9 +11,12 @@ const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const express = require('express');
 const axios = require('axios');
-const { db } = require('./config/firebase');
+const { db, firebaseConfig } = require('./config/firebase');
+const admin = require('firebase-admin');
 const { MercadoPagoConfig } = require('mercadopago');
 require('dotenv').config();
+
+admin.initializeApp();
 const crypto = require('crypto');
 const path = require('path');
 /* const { DateTime } = require("luxon"); */
@@ -275,6 +278,28 @@ app.all('/ipn', async (req, res) => {
   }
 });
 
+// Middleware de autenticación
+const authenticateToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).send('Acceso no autorizado: Token no proporcionado');
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        req.user = decodedToken;
+        next();
+    } catch (error) {
+        console.error('Error al verificar el token:', error);
+        return res.status(403).send('Acceso no autorizado: Token inválido');
+    }
+};
+
+app.get('/firebase-config', authenticateToken, (req, res) => {
+  res.json(firebaseConfig);
+});
+
 app.get('/pagos', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pagos.html'));
 });
@@ -286,4 +311,3 @@ app.get('/pagos', (req, res) => {
     region: 'us-central1',
     maxInstances: 10
   }, app);
-  

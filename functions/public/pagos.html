@@ -167,21 +167,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
     <script>
-        // Configuración de Firebase
-        const firebaseConfig = {
+        // Configuración mínima para inicializar Firebase Auth
+        const minimalConfig = {
             apiKey: "AIzaSyD6XidKMMHLIcEPC7BHgzRVhjxBqlGLYKE",
             authDomain: "ctrlmp-d13a1.firebaseapp.com",
-            projectId: "ctrlmp-d13a1",
-            storageBucket: "ctrlmp-d13a1.firebasestorage.app",
-            messagingSenderId: "904523566464",
-            appId: "1:904523566464:web:4c52bb72953b87ea740565",
-            measurementId: "G-XZVNXL3JQ6"
         };
+        firebase.initializeApp(minimalConfig);
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
         const auth = firebase.auth();
+        let db; // Se inicializará después
 
         // Elementos del DOM
         const loginScreen = document.getElementById('loginScreen');
@@ -202,10 +196,8 @@
         // Función para manejar el login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
             try {
                 showMessage('Iniciando sesión...');
                 await auth.signInWithEmailAndPassword(email, password);
@@ -242,54 +234,26 @@
         // Función para actualizar la tabla
         function actualizarTabla(querySnapshot) {
             pagosBody.innerHTML = '';
-            
             let pagos = [];
-            
             querySnapshot.forEach((doc) => {
                 const pago = doc.data();
                 const fechaPedido = pago.fecha_pedido;
-                
-                // Aplicar filtro de hoy si está activado
-                if (filtroHoy.checked && fechaPedido) {
-                    if (!esDeHoy(fechaPedido)) {
-                        return;
-                    }
+                if (filtroHoy.checked && fechaPedido && !esDeHoy(fechaPedido)) {
+                    return;
                 }
-                
-                pagos.push({
-                    id: doc.id,
-                    data: pago,
-                    fechaPedido: fechaPedido
-                });
+                pagos.push({ id: doc.id, data: pago, fechaPedido: fechaPedido });
             });
-            
-            // Ordenar por fecha de llegada (más recientes primero)
-            pagos.sort((a, b) => {
-                if (!a.fechaPedido && !b.fechaPedido) return 0;
-                if (!a.fechaPedido) return 1;
-                if (!b.fechaPedido) return -1;
-                return new Date(b.fechaPedido) - new Date(a.fechaPedido);
-            });
-            
-            // Mostrar mensaje si no hay pagos
+
+            pagos.sort((a, b) => (b.fechaPedido || 0) - (a.fechaPedido || 0));
+
             if (pagos.length === 0) {
-                pagosBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="sin-pagos">
-                            ${filtroHoy.checked ? 'No hay pagos recibidos hoy' : 'No hay pagos disponibles'}
-                        </td>
-                    </tr>
-                `;
+                pagosBody.innerHTML = `<tr><td colspan="5" class="sin-pagos">${filtroHoy.checked ? 'No hay pagos recibidos hoy' : 'No hay pagos disponibles'}</td></tr>`;
                 return;
             }
-            
-            // Crear filas de la tabla
+
             pagos.forEach((pago) => {
                 const row = document.createElement('tr');
-                
-                const fechaFormateada = pago.fechaPedido ? 
-                    new Date(pago.fechaPedido).toLocaleString() : 'No disponible';
-
+                const fechaFormateada = pago.fechaPedido ? new Date(pago.fechaPedido).toLocaleString() : 'No disponible';
                 row.innerHTML = `
                     <td>${pago.id}</td>
                     <td>${pago.data.email || 'No disponible'}</td>
@@ -302,27 +266,42 @@
         }
 
         // Observador de estado de autenticación
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // Usuario autenticado
                 loginScreen.style.display = 'none';
                 mainContent.style.display = 'block';
                 userEmail.textContent = user.email;
-                
-                // Iniciar escucha de pagos
-                db.collection("pagos").onSnapshot((querySnapshot) => {
-                    actualizarTabla(querySnapshot);
-                });
-                
-                // Escuchar cambios en el filtro
-                filtroHoy.addEventListener('change', () => {
-                    db.collection("pagos").get().then((querySnapshot) => {
-                        actualizarTabla(querySnapshot);
+
+                try {
+                    const idToken = await user.getIdToken();
+                    const response = await fetch('/ctrlMP/firebase-config', {
+                        headers: { 'Authorization': `Bearer ${idToken}` }
                     });
-                });
-                
+
+                    if (!response.ok) {
+                        throw new Error('No se pudo cargar la configuración de Firebase');
+                    }
+                    const fullFirebaseConfig = await response.json();
+
+                    // Inicializar la app completa si no existe
+                    if (!firebase.apps.find(app => app.name === 'FULL_APP')) {
+                        firebase.initializeApp(fullFirebaseConfig, 'FULL_APP');
+                    }
+                    db = firebase.app('FULL_APP').firestore();
+
+                    // Iniciar escucha de pagos
+                    db.collection("pagos").onSnapshot(actualizarTabla);
+
+                    // Escuchar cambios en el filtro
+                    filtroHoy.addEventListener('change', () => {
+                        db.collection("pagos").get().then(actualizarTabla);
+                    });
+
+                } catch (error) {
+                    console.error('Error al inicializar Firebase (completo):', error);
+                    document.body.innerHTML = '<h1>Error al cargar la aplicación. Por favor, intente más tarde.</h1>';
+                }
             } else {
-                // Usuario no autenticado
                 loginScreen.style.display = 'block';
                 mainContent.style.display = 'none';
                 loginMessage.textContent = '';
