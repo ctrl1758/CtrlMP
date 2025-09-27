@@ -17,6 +17,7 @@ CtrlMP es una aplicación web que permite monitorear pagos en tiempo real utiliz
 - **CI/CD**: GitHub Actions
 
 ## Estructura del Proyecto
+
 ```
 CtrlMP/
 ├── functions/           # Cloud Functions
@@ -27,6 +28,22 @@ CtrlMP/
 ├── firestore.rules     # Reglas de seguridad
 └── .github/           # Configuración de GitHub Actions
 ```
+
+## Sobre la Arquitectura del Proyecto
+
+La estructura que implementamos se llama comúnmente "estructura por capas" o "arquitectura en capas", y más específicamente sigue el patrón de "arquitectura MVC (Modelo-Vista-Controlador)" extendido con componentes adicionales. En el contexto de aplicaciones de servidor como esta, también se le conoce como:
+
+1. __Arquitectura por capas (Layered Architecture)__ - Separa la aplicación en capas lógicas: servicios, controladores, rutas, middleware, etc.
+
+2. __Arquitectura basada en servicios (Service-based Architecture)__ - Donde la lógica de negocio se encapsula en servicios reutilizables.
+
+3. __Arquitectura RESTful__ - Con rutas claramente definidas que siguen principios REST.
+
+4. __Patrón MVC (Modelo-Vista-Controlador)__ extendido - Aunque no tenemos un componente de vista tradicional en una API, sí tenemos controladores y modelos (en este caso, servicios que actúan como modelos lógicos).
+
+Esta estructura también incorpora principios de __separación de responsabilidades (SRP)__ del conjunto de principios SOLID, ya que cada archivo y directorio tiene una única responsabilidad bien definida.
+
+En el contexto de Node.js y Express, esta organización se considera una __estructura modular__ o __estructura por módulos__, ya que cada componente (rutas, controladores, servicios) está encapsulado en módulos independientes que se importan y utilizan en el archivo principal.
 
 ## Configuración
 
